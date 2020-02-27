@@ -22,7 +22,6 @@ const mapStateToProps = state => ({
   messageInput: state.tickets.messageInput,
   messageRating: state.tickets.messageRating,
   activeTickets: state.tickets.activeTickets,
-  //messageRating: state.tickets.messageRating,
   ticketsCount: state.tickets.ticketsCount,
 });
 

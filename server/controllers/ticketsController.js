@@ -15,15 +15,18 @@ const ticketsController = {};
 
 ticketsController.getActiveTickets = (req, res, next) => {
   //pass in active room id from front end and query from that
-  
-  const getActiveTickets= `
+  const getActiveTickets = {
+    text: `
     SELECT tickets.*, users.name as mentee_name from TICKETS
     LEFT OUTER JOIN USERS
     ON tickets.mentee_id=users._id
     WHERE status='pending'
     OR status='active'
-    AND tickets.room_id=1
-  `;
+    AND tickets.room_id=$1
+    `,
+    values: [req.params.roomId]
+  }
+  
   db.query(getActiveTickets)
     .then(({ rows }) => {
       const formatTickets = rows.map(ticket => ({
@@ -45,7 +48,7 @@ ticketsController.getActiveTickets = (req, res, next) => {
 }
 
 ticketsController.addTicket = (req, res, next) => {
-  console.log('ADD TICKET: ', req.body);
+  // console.log('ADD TICKET: ', req.body);
   const {  snaps_given, mentee_id, status, message, room_id } = req.body;
   const addTicket = {
     text: `
@@ -71,7 +74,7 @@ ticketsController.addTicket = (req, res, next) => {
 
 
 ticketsController.updateTicketStatus = (req, res, next) => {
-  console.log('UPDATE REQ BODY: ', req.body);
+  // console.log('UPDATE REQ BODY: ', req.body);
   const { ticketId, status, mentorId } = req.body;
   const updateTicket = {
     text: `
