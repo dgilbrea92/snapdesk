@@ -15,13 +15,15 @@ import { combineReducers } from "redux";
 import ticketsReducer from "./ticketsReducer";
 import userReducer from "./userReducer";
 import roomsReducer from "./roomsReducer";
+import leaderReducer from './leaderReducer';
 
 // combine reducers
 const reducers = combineReducers({
   // if we had other reducers, they would go here
   tickets: ticketsReducer,
   user: userReducer,
-  rooms: roomsReducer
+  rooms: roomsReducer,
+  leader: leaderReducer
 });
 
 // make the combined reducers available for import

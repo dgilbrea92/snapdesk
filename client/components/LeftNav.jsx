@@ -1,11 +1,13 @@
-import React from "react";
+import React from 'react';
+// import bootstrap components
 import {
   Nav,
   NavDropdown,
+  Navbar,
   FormControl,
   InputGroup,
   Button
-} from "react-bootstrap";
+} from 'react-bootstrap';
 
 const LeftNav = props => {
   let roomList = [];
@@ -41,43 +43,34 @@ const LeftNav = props => {
   );
 
   return (
-    <Nav
-      defaultActiveKey="/feed"
-      className="d-flex justify-content-center flex-direct:column"
-      id="leftNav"
-    >
-      <Nav.Link>
-        <img
-          src="logo2.png"
-          width="250px"
-          height="60px"
-          className="d-inline-block align-top mx-auto"
-          alt="Snap Desk Logo"
-        ></img>
-      </Nav.Link>
-      <Nav.Link eventKey="profile-link">
-        {" "}
-        <img
-          src={props.url}
-          width="250px"
-          height="250px"
-          className="d-inline-block align-top rounded-circle mx-auto"
-          alt="Snap Desk Logo"
-        ></img>
-        <h4 className="userNameWrap " id="user-Name" width="200px">
-          {props.userName}{" "}
-        </h4>
-      </Nav.Link>
-      <NavDropdown title={props.activeRoom.name}>{roomList}</NavDropdown>
-      <Nav.Link
-        className="btn btn-success btn-sm "
-        width="100px"
-        eventKey="logout-link"
-      >
-        Logout
-      </Nav.Link>
-    </Nav>
+    <Navbar bg="dark" variant="dark" className="flex-column navbar-left">
+      <div className="top-nav">
+        <Navbar.Brand href="/">
+          <img
+            src="image/logo2.png"
+            id="nav-logo"
+            className="d-inline-block align-top"
+            alt="SnapDesk"
+          />
+        </Navbar.Brand>
+        <hr />
+        <Navbar.Brand href="/">
+          <img
+            alt=""
+            src={props.url}
+            className="d-inline-block rounded-circle profile-pic"
+          />
+          {props.userName}
+        </Navbar.Brand>
+        <NavDropdown title={props.activeRoom.name}>{roomList}</NavDropdown>
+      </div>
+      <div className="logout flex-container">
+        <Button variant="outline-light" size="sm" onClick={() => console.log('implement logout feature')}>
+          Logout
+        </Button>
+      </div>
+    </Navbar>
   );
-};
+}
 
 export default LeftNav;

@@ -13,34 +13,37 @@
 import axios from "axios";
 import * as types from "../constants/actionTypes";
 
-export const postTicket = () => (dispatch, getState) =>
-  // this part is why thunk is necessary to delay the firing of the dispatch handlers
-  axios
-    .post("/api/tickets", {
-      // POST request to create a new ticket
-      mentee_id: getState().user.userId,
-      room_id: getState().rooms.activeRoom.id,
-      message: getState().tickets.messageInput,
-      status: "active",
-      snaps_given: getState().tickets.messageRating
-    })
-    .then(({ data }) => {
-      // check if the returned user is logged in, if not, reroute
-      if (!data.isLoggedIn) {
-        dispatch({
-          type: types.USER_LOGOUT,
-          payload: data
-        });
-      } else {
-        // if they're still logged in, continue with new ticket request
-        dispatch({
-          type: types.POST_TICKET,
-          payload: data
-        });
-      }
-    });
+export const updateMessage = event => ({
+  type: types.UPDATE_MESSAGE,
+  payload: event.target.value
+});
 
-export const getTickets = roomId => dispatch =>
+export const chooseTopic = event => ({
+  type: types.CHOOSE_TOPIC,
+  payload: event.target.value
+});
+
+export const updateRating = value => ({
+  type: types.UPDATE_RATING,
+  payload: value,
+});
+
+export const toggleModal = messageInfo => ({
+  type: types.TOGGLE_MODAL,
+  payload: messageInfo
+});
+
+export const updateFeedback = event => ({
+  type: types.UPDATE_FEEDBACK,
+  payload: event.target.value
+});
+
+export const updateFinalRating = value => ({
+  type: types.UPDATE_FINAL_RATING,
+  payload: value,
+});
+
+export const getTickets = roomId => dispatch => {
   // get all active tickets from the DB. the timer for this is configurable from FeedContainer.jsx
   axios.get("/api/tickets/" + roomId).then(({ data }) => {
     if (!data.isLoggedIn) {
@@ -57,18 +60,9 @@ export const getTickets = roomId => dispatch =>
       });
     }
   });
+}
 
-export const updateMessage = event => ({
-  type: types.UPDATE_MESSAGE,
-  payload: event.target.value
-});
-
-export const updateRating = event => ({
-  type: types.UPDATE_RATING,
-  payload: event.target.value
-});
-
-export const deleteTicket = id => (dispatch, getState) =>
+export const deleteTicket = id => (dispatch, getState) => {
   // don't actually delete the ticket from the DB, just set status to deleted so it isn't displayed
   axios
     .put("/api/tickets/update", {
@@ -89,13 +83,42 @@ export const deleteTicket = id => (dispatch, getState) =>
         });
       }
     });
+}
 
-export const resolveTicket = id => (dispatch, getState) =>
+export const postTicket = () => (dispatch, getState) => {
+  axios
+    .post("/api/tickets", {
+      mentee_id: getState().user.userId,
+      room_id: getState().rooms.activeRoom.id,
+      message: getState().tickets.messageInput,
+      status: "active",
+      snaps_given: getState().tickets.messageRating,
+      topic: getState().tickets.topic,
+    })
+    .then(({ data }) => {
+      if (!data.isLoggedIn) {
+        dispatch({
+          type: types.USER_LOGOUT,
+          payload: data
+        });
+      } else {
+        dispatch({
+          type: types.POST_TICKET,
+
+          payload: data,
+        })
+      }
+    })
+}
+
+export const resolveTicket = id => (dispatch, getState) => {
   axios
     .put("/api/tickets/update", {
       ticketId: id,
       status: "resolved",
-      mentorId: getState().user.userId
+      mentorId: getState().user.userId,
+      messageRating: getState().tickets.resolveModal.finalSnaps,
+      feedback: getState().tickets.resolveModal.feedback,
     })
     .then(({ data }) => {
       if (!data.isLoggedIn) {
@@ -110,8 +133,9 @@ export const resolveTicket = id => (dispatch, getState) =>
         });
       }
     });
+}
 
-export const acceptTicket = ticket => (dispatch, getState) =>
+export const acceptTicket = ticket => (dispatch, getState) => {
   axios
     .put("/api/tickets/update", {
       ticketId: ticket.messageId,
@@ -131,13 +155,14 @@ export const acceptTicket = ticket => (dispatch, getState) =>
         });
       }
     });
+}
 
-export const cancelAccept = id => dispatch =>
+export const cancelAccept = id => (dispatch, getState) => {
   axios
-    .put("/api/tickets/update", {
+    .put('/api/tickets/update', {
       ticketId: id,
-      status: "active",
-      mentorId: null
+      status: 'active',
+      mentorId: getState().user.userId
     })
     .then(({ data }) => {
       if (!data.isLoggedIn) {
@@ -148,7 +173,12 @@ export const cancelAccept = id => dispatch =>
       } else {
         dispatch({
           type: types.CANCEL_ACCEPT,
-          payload: id
+          payload: {
+            ticketId: id,
+            status: 'active',
+            mentorId: null
+          }
         });
       }
     });
+}

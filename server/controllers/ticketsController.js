@@ -14,30 +14,36 @@ const db = require("../models/userModel");
 const ticketsController = {};
 
 ticketsController.getActiveTickets = (req, res, next) => {
-  //pass in active room id from front end and query from that
-
   const getActiveTickets = {
-    text: `SELECT tickets.*, users.name as mentee_name from TICKETS
-    LEFT OUTER JOIN USERS
-    ON tickets.mentee_id=users._id
-    WHERE (status='pending'
-    OR status='active')
-    AND tickets.room_id=$1`,
+    text: `
+    SELECT t._id, t.snaps_given, t.message, t.status, t.timestamp, t.mentee_id, t.mentor_id, u2.name as mentee_name, t.topic
+    FROM tickets t
+    FULL OUTER JOIN users u
+    ON u._id = t.mentor_id
+    INNER JOIN users u2
+    ON u2._id = t.mentee_id
+    WHERE t.status = 'active' OR status = 'pending'
+    AND t.room_id=$1
+    ORDER BY t._id
+    `,
     values: [req.params.roomId]
-  };
+  }
+
   db.query(getActiveTickets)
     .then(({ rows }) => {
-      const formatTickets = rows.map(ticket => ({
+      const formattedTickets = rows.map(ticket => ({
         messageInput: ticket.message,
         messageRating: ticket.snaps_given,
         messageId: ticket._id,
         menteeId: ticket.mentee_id,
-        menteeName: ticket.mentee_name,
-        timestamp: ticket.timestamp,
+        mentorName: ticket.mentor_name,//added
+        menteeName: ticket.mentee_name,//added
+        timestamp: ticket.timpestamp,
         status: ticket.status,
-        mentorId: ticket.mentor_id || ""
-      }));
-      res.locals.activeTickets = formatTickets;
+        mentorId: ticket.mentor_id || '',
+        topic: ticket.topic,
+      }))
+      res.locals.activeTickets = formattedTickets;
       return next();
     })
     .catch(err =>
@@ -48,23 +54,25 @@ ticketsController.getActiveTickets = (req, res, next) => {
 };
 
 ticketsController.addTicket = (req, res, next) => {
-  console.log("ADD TICKET: ", req.body);
-  const { snaps_given, mentee_id, status, message, room_id } = req.body;
+  const { snaps_given, mentee_id, status, message, room_id, topic } = req.body;
+
   const addTicket = {
     text: `
       INSERT INTO tickets
-      (snaps_given, mentee_id, status, message, timestamp, room_id)
+      (snaps_given, mentee_id, status, message, timestamp, topic, room_id)
       VALUES
-      ($1, $2, $3, $4, NOW(), $5)
-      RETURNING _id, timestamp, mentee_id;
+      ($1, $2, $3, $4, NOW(), $5, $6)
+      RETURNING _id, timestamp, mentee_id, topic;
     `,
-    values: [snaps_given, mentee_id, status, message, room_id]
-  };
+    values: [snaps_given, mentee_id, status, message, topic, room_id]
+  }
+
   db.query(addTicket)
     .then(ticket => {
       res.locals.ticketId = ticket.rows[0]._id;
       res.locals.timestamp = ticket.rows[0].timestamp;
       res.locals.menteeId = ticket.rows[0].mentee_id;
+      res.locals.topic = ticket.rows[0].topic;
       return next();
     })
     .catch(err =>
@@ -75,7 +83,6 @@ ticketsController.addTicket = (req, res, next) => {
 };
 
 ticketsController.updateTicketStatus = (req, res, next) => {
-  console.log("UPDATE REQ BODY: ", req.body);
   const { ticketId, status, mentorId } = req.body;
   const updateTicket = {
     text: `
@@ -93,6 +100,63 @@ ticketsController.updateTicketStatus = (req, res, next) => {
         log: `Error in middleware ticketsController.updateTicket: ${err}`
       })
     );
+};
+
+ticketsController.cancelTicket = (req, res, next) => {
+  const { status, messageId, mentorId } = req.body;
+  const cancelTicket = {
+    text: `UPDATE tickets
+    SET status = $1, mentor_id = $3
+    WHERE _id = $2;`,
+    values: [status, messageId, mentorId]
+  };
+
+  db.query(cancelTicket)
+    .then(data => {
+      return next();
+    })
+    .catch(err => next({
+      log: `Error in middleware ticketsController.cancelTicket: ${err}`
+    }));
+}
+
+ticketsController.acceptTicket = (req, res, next) => {
+  const { status, ticketId, mentorId } = req.body;
+  const acceptTicket = {
+    text: `
+      UPDATE tickets
+      SET status = $1, mentor_id = $3
+      WHERE _id = $2;
+    `,
+    values: [status, ticketId, mentorId],
+  }
+
+  db.query(acceptTicket)
+    .then((response) => {
+      return next();
+    })
+    .catch(err => {
+      console.log('Error: ', err);
+      return next(err)
+    });
+};
+
+ticketsController.resolveTicket = (req, res, next) =>{
+  const { status, messageId, messageRating, feedback } = req.body;
+  const resolveTicket = {
+    text: `UPDATE tickets
+    SET status = $1, snaps_given = $3, feedback = $4
+    WHERE _id = $2;`,
+    values: [status, messageId, messageRating, feedback]
+  }
+  db.query(resolveTicket)
+  .then((result) => {
+    return next();
+  })
+  .catch(err =>{
+    console.log('Error: ', err);
+    return next(err);
+  });
 };
 
 module.exports = ticketsController;
